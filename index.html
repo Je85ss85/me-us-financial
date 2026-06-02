@@ -187,8 +187,30 @@ const PAYERS = ['三墊','葉墊','公費'];
 let personal=[], joint=[], invest={mv631:0,mv662:0,mv865:0,cash:0};
 let todayTab='全部', ledgerTab='流水';
 
-// ── Seed data ─────────────────────────────────────────────────
+// ── Seed data（完整歷史資料 from screenshots）─────────────────
 const SEED_P = [
+  // 2026-06
+  {id:201,date:'2026-06-01',desc:'潤餅游泳',amt:240,cat:'🍱 餐飲',cash:false},
+  // 2026-05
+  {id:150,date:'2026-05-31',desc:'畢業餐',amt:1353,cat:'🍱 餐飲',cash:false},
+  {id:151,date:'2026-05-24',desc:'飲料',amt:30,cat:'🍱 餐飲',cash:false},
+  {id:152,date:'2026-05-24',desc:'嘉惠生日',amt:1000,cat:'🍱 餐飲',cash:false},
+  {id:153,date:'2026-05-23',desc:'停車費',amt:40,cat:'🚗 交通',cash:false},
+  {id:154,date:'2026-05-22',desc:'✈️5月濟州行5天',amt:30000,cat:'✈️ 出遊',cash:false},
+  {id:165,date:'2026-05-22',desc:'運動游泳',amt:140,cat:'🙏 其他',cash:false},
+  {id:166,date:'2026-05-22',desc:'潤餅午餐',amt:70,cat:'🍱 餐飲',cash:false},
+  {id:167,date:'2026-05-16',desc:'🇰🇷韓國esim',amt:250,cat:'🙏 其他',cash:false},  {id:155,date:'2026-05-16',desc:'給媽媽菜錢',amt:2000,cat:'🏠 家用孝親',cash:false},
+  {id:156,date:'2026-05-12',desc:'龍蝦燈',amt:1080,cat:'🙏 其他',cash:false},
+  {id:168,date:'2026-05-11',desc:'🏠的投資計劃貸款',amt:3800,cat:'🙏 其他',cash:false},
+  {id:157,date:'2026-05-09',desc:'母親節紅包',amt:3000,cat:'🎁 禮物',cash:false},
+  {id:158,date:'2026-05-09',desc:'母親節禮物蛋糕',amt:500,cat:'🎁 禮物',cash:false},
+  {id:159,date:'2026-05-09',desc:'香氛',amt:109,cat:'🍱 餐飲',cash:false},
+  {id:160,date:'2026-05-07',desc:'媽媽禮物手機殼',amt:130,cat:'🎁 禮物',cash:false},
+  {id:161,date:'2026-05-04',desc:'自然人憑證規費',amt:250,cat:'🙏 其他',cash:false},
+  {id:162,date:'2026-05-03',desc:'Apple雲端訂閱費',amt:300,cat:'🙏 其他',cash:false},
+  {id:163,date:'2026-05-03',desc:'賣四本書',amt:1111,cat:'📚 學習成長',cash:false},
+  {id:164,date:'2026-05-01',desc:'給小寶貝按摩券',amt:800,cat:'🎁 禮物',cash:false},
+  // 2026-04
   {id:1,date:'2026-04-27',desc:'早餐飯糰',amt:65,cat:'🍱 餐飲',cash:false},
   {id:2,date:'2026-04-25',desc:'雞排+鐵板燒+彩碗',amt:355,cat:'🍱 餐飲',cash:false},
   {id:3,date:'2026-04-25',desc:'3支酒🍷',amt:2000,cat:'🎉 娛樂',cash:false},
@@ -203,6 +225,7 @@ const SEED_P = [
   {id:12,date:'2026-04-12',desc:'南投住宿',amt:2000,cat:'✈️ 出遊',cash:false},
   {id:13,date:'2026-04-07',desc:'超速罰鍰😡',amt:4613,cat:'🙏 其他',cash:false},
   {id:14,date:'2026-04-06',desc:'麵阿央+冰淇淋',amt:930,cat:'🍱 餐飲',cash:false},
+  // 2026-03
   {id:15,date:'2026-03-31',desc:'豆腐村+麵包+蛋黃酥',amt:1688,cat:'🍱 餐飲',cash:false},
   {id:16,date:'2026-03-30',desc:'牌照稅',amt:7120,cat:'🙏 其他',cash:false},
   {id:17,date:'2026-03-30',desc:'Cloud訂閱+買菜+火鍋',amt:1027,cat:'🛍️ 購物',cash:false},
@@ -213,6 +236,7 @@ const SEED_P = [
   {id:22,date:'2026-03-13',desc:'孝親費',amt:3000,cat:'🏠 家用孝親',cash:false},
   {id:23,date:'2026-03-13',desc:'🦷牙齒',amt:10000,cat:'🏥 醫療',cash:false},
   {id:24,date:'2026-03-09',desc:'罰單+健保費+牙線棒',amt:2629,cat:'🙏 其他',cash:false},
+  // 2026-02
   {id:25,date:'2026-02-25',desc:'日用品+書',amt:400,cat:'📚 學習成長',cash:false},
   {id:26,date:'2026-02-22',desc:'春酒+日用品',amt:5700,cat:'🎉 娛樂',cash:false},
   {id:27,date:'2026-02-22',desc:'紅包',amt:20000,cat:'🎁 禮物',cash:false},
@@ -220,6 +244,7 @@ const SEED_P = [
   {id:29,date:'2026-02-13',desc:'肉次方+停車+伴手禮+ETag',amt:3130,cat:'🍱 餐飲',cash:false},
   {id:30,date:'2026-02-10',desc:'🦷臨時假牙+材料',amt:5000,cat:'🏥 醫療',cash:false},
   {id:31,date:'2026-02-10',desc:'🇩🇪德國材料',amt:20000,cat:'🏥 醫療',cash:false},
+  // 2026-01
   {id:32,date:'2026-01-31',desc:'台中吃喝聚餐',amt:3800,cat:'🍱 餐飲',cash:false},
   {id:33,date:'2026-01-31',desc:'羊肉爐+洗車',amt:640,cat:'🍱 餐飲',cash:false},
   {id:34,date:'2026-01-20',desc:'Apple訂閱',amt:680,cat:'🛍️ 購物',cash:false},
@@ -233,6 +258,30 @@ const SEED_P = [
   {id:42,date:'2026-01-06',desc:'淘寶+燭台+跨年',amt:3200,cat:'🛍️ 購物',cash:false},
 ];
 const SEED_J = [
+  // 2026-05 共同
+  {id:501,date:'2026-05-31',desc:'浮生生',amt:230,cat:'🍱 餐飲',payer:'公費'},
+  {id:502,date:'2026-05-31',desc:'飲料',amt:63,cat:'🍱 餐飲',payer:'三墊'},
+  {id:503,date:'2026-05-31',desc:'雞肉回家煮',amt:150,cat:'🍱 餐飲',payer:'公費'},
+  {id:504,date:'2026-05-31',desc:'Phooo',amt:380,cat:'🍱 餐飲',payer:'公費'},
+  {id:505,date:'2026-05-31',desc:'法國麵包',amt:90,cat:'🍱 餐飲',payer:'公費'},
+  {id:506,date:'2026-05-31',desc:'停車費交通費',amt:500,cat:'🚗 交通',payer:'三墊'},
+  {id:507,date:'2026-05-31',desc:'滷味',amt:260,cat:'🍱 餐飲',payer:'公費'},
+  {id:508,date:'2026-05-31',desc:'節瓜回家煮',amt:50,cat:'🍱 餐飲',payer:'公費'},
+  {id:509,date:'2026-05-31',desc:'蘿蔔糕',amt:120,cat:'🍱 餐飲',payer:'公費'},
+  {id:510,date:'2026-05-31',desc:'米干',amt:205,cat:'🍱 餐飲',payer:'三墊'},
+  {id:511,date:'2026-05-24',desc:'買菜錢',amt:100,cat:'🙏 其他',payer:'三墊'},
+  {id:514,date:'2026-05-16',desc:'餅乾機場',amt:35,cat:'🍱 餐飲',payer:'三墊'},
+  {id:513,date:'2026-05-16',desc:'機場泡麵',amt:40,cat:'🍱 餐飲',payer:'三墊'},
+  {id:515,date:'2026-05-13',desc:'回台北火車錢',amt:170,cat:'🚗 交通',payer:'公費'},
+  {id:516,date:'2026-05-12',desc:'飯後飲料',amt:30,cat:'🍱 餐飲',payer:'公費'},
+  {id:517,date:'2026-05-12',desc:'虎踞成中式',amt:557,cat:'🍱 餐飲',payer:'公費'},
+  {id:518,date:'2026-05-11',desc:'飲料',amt:120,cat:'🍱 餐飲',payer:'公費'},
+  {id:519,date:'2026-05-11',desc:'電影票穿著prada惡魔',amt:408,cat:'🎉 娛樂',payer:'公費'},
+  {id:521,date:'2026-05-11',desc:'福哥生魚片',amt:700,cat:'🍱 餐飲',payer:'公費'},
+  {id:522,date:'2026-05-11',desc:'外帶壽司歐告卷',amt:327,cat:'🍱 餐飲',payer:'公費'},
+  {id:523,date:'2026-05-10',desc:'停車費',amt:80,cat:'🚗 交通',payer:'公費'},
+  {id:524,date:'2026-05-10',desc:'小火鍋',amt:441,cat:'🍱 餐飲',payer:'公費'},
+  // 2026-04 共同
   {id:101,date:'2026-04-26',desc:'咖啡展麵包',amt:205,cat:'🍱 餐飲',payer:'三墊'},
   {id:102,date:'2026-04-26',desc:'停車',amt:150,cat:'🚗 交通',payer:'三墊'},
   {id:103,date:'2026-04-25',desc:'王塔米糕',amt:80,cat:'🍱 餐飲',payer:'公費'},
