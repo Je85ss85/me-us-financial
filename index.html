@@ -148,6 +148,53 @@ input,select,textarea{font-family:inherit;outline:none;}
   </div>
 </div>
 
+<!-- Snapshot Modal -->
+<div class="modal-overlay" id="snapshotModal">
+  <div class="modal">
+    <div class="modal-title">📊 新增庫存快照 <span class="modal-close" onclick="closeSnapshotModal()">✕</span></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+      <div class="form-group">
+        <div class="form-label">快照日期</div>
+        <input class="inp" type="date" id="sDate"/>
+      </div>
+      <div></div>
+      <div class="form-group">
+        <div class="form-label">總現值</div>
+        <input class="inp" type="number" id="sTotalValue" placeholder="0" inputmode="numeric"/>
+      </div>
+      <div class="form-group">
+        <div class="form-label">總成本</div>
+        <input class="inp" type="number" id="sTotalCost" placeholder="0" inputmode="numeric"/>
+      </div>
+    </div>
+    <div style="font-size:11px;font-weight:600;color:var(--mid);margin-bottom:6px">帳戶明細</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+      <div class="form-group">
+        <div class="form-label">帳戶1名稱</div>
+        <input class="inp" type="text" id="sAcc1Name" value="玉山活水庫"/>
+      </div>
+      <div class="form-group">
+        <div class="form-label">帳戶1現值</div>
+        <input class="inp" type="number" id="sAcc1Value" placeholder="0" inputmode="numeric"/>
+      </div>
+      <div class="form-group">
+        <div class="form-label">帳戶2名稱</div>
+        <input class="inp" type="text" id="sAcc2Name" value="國泰銀彈庫"/>
+      </div>
+      <div class="form-group">
+        <div class="form-label">帳戶2現值</div>
+        <input class="inp" type="number" id="sAcc2Value" placeholder="0" inputmode="numeric"/>
+      </div>
+    </div>
+    <div class="form-group" style="margin-bottom:12px">
+      <div class="form-label">備註（選填，例：本月轉入/調整說明）</div>
+      <textarea class="inp" id="sNote" rows="3" placeholder="例：結餘轉投資 NT$6,000&#10;⬆️ 調整後&#10;玉山活水庫 NT$8,274" style="resize:none;line-height:1.6"></textarea>
+    </div>
+    <button class="btn-primary" onclick="submitSnapshot()">確認新增</button>
+    <button style="width:100%;margin-top:8px;background:transparent;border:1px solid var(--border);border-radius:var(--radiusSm);padding:10px;font-size:12px;color:var(--mid)" onclick="closeSnapshotModal()">取消</button>
+  </div>
+</div>
+
 <nav class="nav">
   <button class="nav-btn active" onclick="switchTab('today',this)"><span class="nav-icon">🏠</span>今日</button>
   <button class="nav-btn" onclick="switchTab('ledger',this)"><span class="nav-icon">📒</span>帳務</button>
@@ -170,10 +217,10 @@ async function dbSet(k,v){
 // ── Constants ─────────────────────────────────────────────────
 const PERSONAL_BUDGET = 8000;
 const JOINT_BUDGET = 8000;
-const CATS = ['🍱 餐飲','🚗 交通','🏥 醫療','🏠 家用孝親','🛍️ 購物','🎉 娛樂','✈️ 出遊','🎁 禮物','📚 學習成長','🙏 其他'];
-const CAT_COLORS = ['#2D7A4F','#B8860B','#D94040','#7B5E3A','#2B5FC2','#8B6BAE','#1A8080','#CC7722','#5B8DB8','#888'];
-const P_LIMITS = {'🍱 餐飲':2500,'🚗 交通':1500,'🎉 娛樂':1500,'✈️ 出遊':2000,'🛍️ 購物':1000,'🏠 家用孝親':1000,'🎁 禮物':500,'📚 學習成長':1000};
-const J_LIMITS = {'🍱 餐飲':3500,'🚗 交通':2000,'🎉 娛樂':1500,'✈️ 出遊':3000,'🛍️ 購物':500,'📚 學習成長':1000,'🙏 其他':500};
+const CATS = ['🍱 餐飲','🥦 買菜回家煮','🚗 交通','🏥 醫療','🏠 家用孝親','🛍️ 購物','🎉 娛樂','✈️ 出遊','🎁 禮物','📚 學習成長','🙏 其他'];
+const CAT_COLORS = ['#2D7A4F','#5A9A30','#B8860B','#D94040','#7B5E3A','#2B5FC2','#8B6BAE','#1A8080','#CC7722','#5B8DB8','#888'];
+const P_LIMITS = {'🍱 餐飲':2500,'🥦 買菜回家煮':800,'🚗 交通':1500,'🎉 娛樂':1500,'✈️ 出遊':2000,'🛍️ 購物':1000,'🏠 家用孝親':1000,'🎁 禮物':500,'📚 學習成長':1000};
+const J_LIMITS = {'🍱 餐飲':3500,'🥦 買菜回家煮':1000,'🚗 交通':2000,'🎉 娛樂':1500,'✈️ 出遊':3000,'🛍️ 購物':500,'📚 學習成長':1000,'🙏 其他':500};
 const ALLOC = [
   {k:'life',l:'日常生活',p:40,a:8000,c:'var(--green)',e:'🛒'},
   {k:'emergency',l:'緊急備用',p:5,a:1000,c:'var(--coffee)',e:'🛡️'},
@@ -807,53 +854,167 @@ function toggleMonth(id){
 function openReport(){
   const sel=document.getElementById('reportMonthSel');
   const m=sel?sel.value:ymNow();
+  const mn=parseInt(m.split('-')[1]);
+  const yr=parseInt(m.split('-')[0]);
+
   const pE=personal.filter(e=>e.date.startsWith(m)&&!e.cash).sort((a,b)=>a.date.localeCompare(b.date));
   const jE=joint.filter(e=>e.date.startsWith(m)).sort((a,b)=>a.date.localeCompare(b.date));
   const pTotal=pE.reduce((s,e)=>s+e.amt,0);
   const jTotal=jE.reduce((s,e)=>s+e.amt,0);
   const sanAmt=jE.filter(e=>e.payer==='三墊').reduce((s,e)=>s+e.amt,0);
   const yeAmt=jE.filter(e=>e.payer==='葉墊').reduce((s,e)=>s+e.amt,0);
+  const pRem=Math.max(0,8000-pTotal);
+  const jRem=Math.max(0,8000-jTotal);
 
   const pBycat={};CATS.forEach(c=>{const v=pE.filter(e=>e.cat===c).reduce((s,e)=>s+e.amt,0);if(v)pBycat[c]=v;});
   const jBycat={};CATS.forEach(c=>{const v=jE.filter(e=>e.cat===c).reduce((s,e)=>s+e.amt,0);if(v)jBycat[c]=v;});
 
+  const days=['日','一','二','三','四','五','六'];
   const now=new Date();
-  const dateStr=`${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日`;
+  const dateStr=`${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日 星期${days[now.getDay()]}`;
 
-  let html=`<div style="font-size:11px;line-height:1.9">
-    <div style="font-size:13px;font-weight:800;margin-bottom:8px">📅 ${ymLabel(m)} 月度報表</div>
-    <div style="color:var(--dim);font-size:10px;margin-bottom:14px">產出時間：${dateStr}</div>
+  // 找當月最新快照
+  const snap=snapshots.filter(s=>s.date.startsWith(m)).sort((a,b)=>b.date.localeCompare(a.date))[0]
+    || snapshots.sort((a,b)=>b.date.localeCompare(a.date))[0]; // fallback 最新一筆
 
-    <div style="font-size:12px;font-weight:700;color:var(--green);margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border)">👤 個人報表 — ${fmt(pTotal)}</div>
-    <div class="g2" style="margin-bottom:10px">
-      ${Object.entries(pBycat).sort((a,b)=>b[1]-a[1]).map(([c,v])=>`<div style="display:flex;justify-content:space-between;font-size:10px;padding:4px 0;border-bottom:1px solid var(--border)"><span style="color:var(--mid)">${c.replace(/^[^ ]+ /,'')}</span><span style="font-weight:600">${fmt(v)}</span></div>`).join('')}
-    </div>
-    <div style="font-size:10px;font-weight:600;color:var(--mid);margin-bottom:6px">個人流水明細</div>
-    ${pE.map(e=>`<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-size:10px">
-      <span style="color:var(--mid)">${e.date.slice(5)} ${e.desc}</span>
-      <span style="font-weight:600;color:var(--p-color)">-${fmt(e.amt)}</span>
-    </div>`).join('')||'<div style="color:var(--dim);font-size:10px">無記錄</div>'}
+  // 快照文字區塊
+  let snapBlock='本月尚未更新投資快照';
+  if(snap){
+    const pnl=snap.totalValue-snap.totalCost;
+    const pct=snap.totalCost>0?(pnl/snap.totalCost*100).toFixed(2):0;
+    const sign=pnl>=0?'＋':'－';
+    snapBlock=`${snap.date} 股票庫存現值\n總現值　${snap.totalValue.toLocaleString()}\n總成本　${snap.totalCost.toLocaleString()}\n總損益　${sign}${Math.abs(pnl).toLocaleString()} (${pnl>=0?'+':''}${pct}%)\n—————`;
+    snap.accounts.forEach(a=>{snapBlock+=`\n${a.name}　$${a.value.toLocaleString()}`;});
+    if(snap.note)snapBlock+=`\n${snap.note}`;
+  }
 
-    <div style="font-size:12px;font-weight:700;color:var(--gold);margin:14px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--border)">👫 共同報表 — ${fmt(jTotal)}</div>
-    <div class="g2" style="margin-bottom:10px">
-      ${Object.entries(jBycat).sort((a,b)=>b[1]-a[1]).map(([c,v])=>`<div style="display:flex;justify-content:space-between;font-size:10px;padding:4px 0;border-bottom:1px solid var(--border)"><span style="color:var(--mid)">${c.replace(/^[^ ]+ /,'')}</span><span style="font-weight:600">${fmt(v)}</span></div>`).join('')}
-    </div>
-    <div style="font-size:10px;font-weight:600;color:var(--mid);margin-bottom:6px">共同流水明細</div>
-    ${jE.map(e=>`<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-size:10px">
-      <span style="color:var(--mid)">${e.date.slice(5)} ${e.desc} ${payerBadge(e.payer)}</span>
-      <span style="font-weight:600;color:var(--j-color)">-${fmt(e.amt)}</span>
-    </div>`).join('')||'<div style="color:var(--dim);font-size:10px">無記錄</div>'}
-
-    ${sanAmt>0||yeAmt>0?`<div style="background:var(--goldLt);border-radius:8px;padding:10px;margin-top:12px">
-      <div style="font-size:11px;font-weight:700;margin-bottom:6px">⚖️ 墊付待結清</div>
-      ${sanAmt>0?`<div style="font-size:10px">三墊 待公費匯回：<b>${fmt(sanAmt)}</b></div>`:''}
-      ${yeAmt>0?`<div style="font-size:10px">葉墊 待公費匯回：<b>${fmt(yeAmt)}</b></div>`:''}
-    </div>`:''}
+  // 分類行
+  const catRow=(cat,val,color)=>`<div style="display:flex;justify-content:space-between;padding:5px 12px;font-size:12px">
+    <span style="color:var(--mid)">${cat.split(' ')[0]} ${cat.replace(/^[^ ]+ /,'')}</span>
+    <span style="font-weight:600;color:${color}">${fmt(val)}</span>
   </div>`;
 
+  const sep=`<div style="border-top:1px solid var(--border);margin:4px 0"></div>`;
+  const divider=`<div style="text-align:center;font-size:11px;color:var(--dim);letter-spacing:2px;padding:6px 0">━━━━━━━━━━━━━━━</div>`;
+
+  // 流水行
+  const flowRow=(e,src)=>`<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:11px;border-bottom:1px solid var(--border)">
+    <span><span style="color:var(--dim)">${e.date.slice(5)}</span> ${e.desc}${src==='j'?` <span style="font-size:9px;color:var(--mid)">(${e.payer})</span>`:''}
+    </span>
+    <span style="font-weight:600;flex-shrink:0;margin-left:6px;color:${src==='j'?'var(--gold)':'var(--green)'}">${fmt(e.amt)}</span>
+  </div>`;
+
+  const html=`<div style="font-size:11px">
+
+    <!-- 標題 -->
+    <div style="text-align:center;padding:12px 0 8px">
+      <div style="font-size:14px;font-weight:900;letter-spacing:1px">╔═══════════════╗</div>
+      <div style="font-size:13px;font-weight:900;padding:2px 0">錢錢經理人 ${mn}月財務報表</div>
+      <div style="font-size:14px;font-weight:900;letter-spacing:1px">╚═══════════════╝</div>
+      <div style="margin-top:6px;font-size:11px;color:var(--mid)">🐢 小花花 & 小貝貝 🐢</div>
+      <div style="font-size:10px;color:var(--dim);margin-top:2px">產出時間：${dateStr}</div>
+    </div>
+
+    ${divider}
+    <div style="font-size:12px;font-weight:700;text-align:center;padding:4px 0;color:var(--text)">📅 ${yr}年${mn}月</div>
+    ${divider}
+
+    <!-- 個人支出 -->
+    <div style="background:var(--greenLt);border-radius:10px;padding:10px;margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700;margin-bottom:6px">
+        <span>👤 個人支出</span>
+        <span style="color:var(--green)">${fmt(pTotal)} ${pTotal<=8000?'✓ 預算內':''}</span>
+      </div>
+      ${pTotal<=8000?`<div style="font-size:10px;color:var(--green);margin-bottom:6px">盈餘：${fmt(pRem)}</div>`:''}
+      <div style="background:var(--card);border-radius:8px;overflow:hidden">
+        ${Object.entries(pBycat).sort((a,b)=>b[1]-a[1]).map(([c,v])=>catRow(c,v,'var(--green)')).join('')}
+      </div>
+    </div>
+
+    <!-- 共同支出 -->
+    <div style="background:var(--goldLt);border-radius:10px;padding:10px;margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700;margin-bottom:6px">
+        <span>👫 共同支出</span>
+        <span style="color:var(--gold)">${fmt(jTotal)} ${jTotal<=8000?'✓ 預算內':''}</span>
+      </div>
+      ${jTotal<=8000?`<div style="font-size:10px;color:var(--gold);margin-bottom:6px">盈餘：${fmt(jRem)}</div>`:''}
+      <div style="background:var(--card);border-radius:8px;overflow:hidden">
+        ${Object.entries(jBycat).sort((a,b)=>b[1]-a[1]).map(([c,v])=>catRow(c,v,'var(--gold)')).join('')}
+      </div>
+      ${sanAmt>0||yeAmt>0?`<div style="margin-top:8px;font-size:10px;color:var(--mid)">
+        ${sanAmt>0?`三墊待匯回 <b style="color:var(--green)">${fmt(sanAmt)}</b>　`:''}
+        ${yeAmt>0?`葉墊待匯回 <b style="color:var(--gold)">${fmt(yeAmt)}</b>`:''}
+      </div>`:''}
+    </div>
+
+    ${divider}
+    <div style="font-size:12px;font-weight:700;text-align:center;padding:4px 0">📈 ${mn}月投資概況</div>
+    ${divider}
+
+    <div style="background:var(--blueLt);border-radius:10px;padding:10px;margin-bottom:8px;font-size:11px;white-space:pre-line;line-height:1.8;color:var(--text)">${snapBlock}</div>
+
+    ${divider}
+    <div style="font-size:12px;font-weight:700;text-align:center;padding:4px 0">💦 ${mn}月支出流水</div>
+    ${divider}
+
+    <!-- 個人流水 可開合 -->
+    <div style="margin-bottom:8px">
+      <div onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'"
+        style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--greenLt);border-radius:8px;cursor:pointer;font-size:12px;font-weight:600">
+        <span>👤 個人流水　${fmt(pTotal)}</span>
+        <span style="color:var(--dim);font-size:11px">點開 ▼</span>
+      </div>
+      <div style="display:none;padding:4px 0">
+        ${pE.map(e=>flowRow(e,'p')).join('')||'<div style="color:var(--dim);font-size:11px;padding:6px 0">無記錄</div>'}
+      </div>
+    </div>
+
+    <!-- 共同流水 可開合 -->
+    <div style="margin-bottom:8px">
+      <div onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'"
+        style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--goldLt);border-radius:8px;cursor:pointer;font-size:12px;font-weight:600">
+        <span>👫 共同流水　${fmt(jTotal)}</span>
+        <span style="color:var(--dim);font-size:11px">點開 ▼</span>
+      </div>
+      <div style="display:none;padding:4px 0">
+        ${jE.map(e=>flowRow(e,'j')).join('')||'<div style="color:var(--dim);font-size:11px;padding:6px 0">無記錄</div>'}
+      </div>
+    </div>
+
+  </div>`;
+
+  // ── 純文字複製版 ──
+  const L='━━━━━━━━━━━━━━━━━\n';
+  let txt='╔══════════════════════╗\n';
+  txt+=`║  錢錢經理人 ${mn}月財務報表  ║\n`;
+  txt+='╚══════════════════════╝\n';
+  txt+=`🐢 小花花 & 小貝貝 🐢\n產出時間：${dateStr}\n\n`;
+  txt+=`${L}📅 ${yr}年${mn}月\n${L}\n`;
+  txt+=`👤 個人支出：${fmt(pTotal)}${pTotal<=8000?' ✓ 預算內　盈餘：'+fmt(pRem):''}\n\n【個人明細】\n`;
+  Object.entries(pBycat).sort((a,b)=>b[1]-a[1]).forEach(([c,v])=>{
+    const name=c.replace(/^[^ ]+ /,'');
+    txt+=`  ${name.padEnd(6)}${fmt(v)}\n`;
+  });
+  txt+=`\n${L}📈 ${mn}月投資概況\n${L}\n`;
+  txt+=snapBlock+'\n\n';
+  txt+=`${L}💦 ${mn}月支出流水\n${L}\n`;
+  txt+=`【個人】總計 ${fmt(pTotal)}\n`;
+  pE.forEach(e=>{txt+=`${e.date.slice(5)} ${e.desc} -${fmt(e.amt)}\n`;});
+  txt+=`\n共同支出：${fmt(jTotal)}${jTotal<=8000?' ✓ 預算內　盈餘：'+fmt(jRem):''}\n\n【共同明細】\n`;
+  Object.entries(jBycat).sort((a,b)=>b[1]-a[1]).forEach(([c,v])=>{
+    const name=c.replace(/^[^ ]+ /,'');
+    txt+=`  ${name.padEnd(6)}${fmt(v)}\n`;
+  });
+  txt+=`\n【共同】總計 ${fmt(jTotal)}\n`;
+  jE.forEach(e=>{txt+=`${e.date.slice(5)} ${e.desc}(${e.payer}) -${fmt(e.amt)}\n`;});
+  if(sanAmt>0||yeAmt>0){
+    txt+=`\n⚖️ 墊付待結清\n`;
+    if(sanAmt>0)txt+=`三墊 → 公費匯回 ${fmt(sanAmt)}\n`;
+    if(yeAmt>0)txt+=`葉墊 → 公費匯回 ${fmt(yeAmt)}\n`;
+  }
+  window._reportText=txt;
+
   document.getElementById('reportContent').innerHTML=html;
-  // Store text version for copy
-  window._reportText=`錢錢經理人 ${ymLabel(m)} 月度報表\n產出時間：${dateStr}\n\n【個人】總計 ${fmt(pTotal)}\n${pE.map(e=>`${e.date.slice(5)} ${e.desc} -${fmt(e.amt)}`).join('\n')}\n\n【共同】總計 ${fmt(jTotal)}\n${jE.map(e=>`${e.date.slice(5)} ${e.desc}(${e.payer}) -${fmt(e.amt)}`).join('\n')}${sanAmt>0||yeAmt>0?`\n\n【墊付】${sanAmt>0?`三墊待匯回 ${fmt(sanAmt)} `:''}${yeAmt>0?`葉墊待匯回 ${fmt(yeAmt)}`:''}`:''}`;
   document.getElementById('reportModal').classList.add('open');
 }
 function closeReport(){document.getElementById('reportModal').classList.remove('open');}
@@ -984,13 +1145,170 @@ function renderInvest(){
         <span style="color:var(--mid)">${c}</span>
         <span style="font-weight:600;color:${col}">${a}</span>
       </div>`).join('')}
+    </div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div class="card-title" style="margin-bottom:0">📊 帳戶庫存快照</div>
+        <button onclick="openAddSnapshot()" style="background:var(--green);color:#fff;border:none;border-radius:20px;padding:6px 14px;font-size:11px;font-weight:600;font-family:inherit;cursor:pointer">＋ 新增</button>
+      </div>
+      <div id="snapshotList"><div style="text-align:center;padding:16px 0;color:var(--dim);font-size:12px">載入中...</div></div>
     </div>`;
 }
 
 function updInv(k,v){invest[k]=parseFloat(v)||0;saveAll();renderInvest();}
 
+// ── Investment snapshots ──────────────────────────────────────
+let snapshots=[];
+
+async function loadSnapshots(){
+  const s=await dbGet('qqm:snaps');
+  if(s)snapshots=s;
+  else snapshots=[{
+    id:1,
+    date:'2026-06-02',
+    totalValue:17987,
+    totalCost:16298,
+    accounts:[
+      {name:'玉山活水庫',value:2274},
+      {name:'國泰銀彈庫',value:13702},
+    ],
+    note:'四月五月共同基金日常開銷結餘轉投資 NT$6,000\n⬆️ 調整後\n玉山活水庫 NT$8,274\n國泰銀彈庫 NT$7,702'
+  }];
+}
+
+async function saveSnapshots(){
+  await dbSet('qqm:snaps',snapshots);
+}
+
+function renderSnapshots(){
+  const el=document.getElementById('snapshotList');
+  if(!el)return;
+  if(!snapshots.length){el.innerHTML=`<div style="text-align:center;padding:20px 0;color:var(--dim);font-size:12px">尚無快照記錄</div>`;return;}
+  el.innerHTML=snapshots.slice().reverse().map((s,i)=>{
+    const pnl=s.totalValue-s.totalCost;
+    const pnlPct=s.totalCost>0?(pnl/s.totalCost*100).toFixed(2):0;
+    const pnlColor=pnl>=0?'var(--green)':'var(--danger)';
+    const isFirst=i===0;
+    const mid='snap'+s.id;
+    return `<div class="month-section" style="margin-bottom:8px">
+      <div class="month-header" onclick="toggleMonth('${mid}')">
+        <div>
+          <div class="month-title">📅 ${s.date} 快照</div>
+          <div class="month-summary" style="color:${pnlColor};font-weight:600">${pnl>=0?'+':''}${fmt(pnl)} (${pnl>=0?'+':''}${pnlPct}%)</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:13px;font-weight:700">${fmt(s.totalValue)}</span>
+          <span class="month-chevron${isFirst?' open':''}" id="chev-${mid}">▼</span>
+        </div>
+      </div>
+      <div class="month-body${isFirst?' open':''}" id="${mid}">
+        <div style="padding:4px 0 10px">
+          <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
+            <span style="color:var(--mid)">總現值</span>
+            <span style="font-weight:700">${fmt(s.totalValue)}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
+            <span style="color:var(--mid)">總成本</span>
+            <span style="font-weight:700">${fmt(s.totalCost)}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
+            <span style="color:var(--mid)">總損益</span>
+            <span style="font-weight:700;color:${pnlColor}">${pnl>=0?'+':''}${fmt(pnl)} (${pnl>=0?'+':''}${pnlPct}%)</span>
+          </div>
+          ${s.accounts.map(a=>`
+          <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
+            <span style="color:var(--mid)">${a.name}</span>
+            <span style="font-weight:600">${fmt(a.value)}</span>
+          </div>`).join('')}
+          ${s.note?`<div style="margin-top:8px;padding:9px 11px;background:var(--goldLt);border-radius:8px;font-size:11px;color:var(--mid);white-space:pre-line;line-height:1.7">📌 ${s.note}</div>`:''}
+          <div style="display:flex;gap:6px;margin-top:10px">
+            <button onclick="copySnapshot(${s.id})" style="flex:1;background:var(--green);color:#fff;border:none;border-radius:8px;padding:8px;font-size:11px;font-weight:600;font-family:inherit;cursor:pointer">複製報表</button>
+            <button onclick="deleteSnapshot(${s.id})" style="background:transparent;border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:11px;color:var(--dim);font-family:inherit;cursor:pointer">刪除</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openAddSnapshot(){
+  const modal=document.getElementById('snapshotModal');
+  if(modal)modal.classList.add('open');
+  // reset form
+  const today=todayStr();
+  document.getElementById('sDate').value=today;
+  document.getElementById('sTotalValue').value='';
+  document.getElementById('sTotalCost').value='';
+  document.getElementById('sAcc1Name').value='玉山活水庫';
+  document.getElementById('sAcc1Value').value='';
+  document.getElementById('sAcc2Name').value='國泰銀彈庫';
+  document.getElementById('sAcc2Value').value='';
+  document.getElementById('sNote').value='';
+}
+
+function closeSnapshotModal(){
+  const modal=document.getElementById('snapshotModal');
+  if(modal)modal.classList.remove('open');
+}
+
+function submitSnapshot(){
+  const date=document.getElementById('sDate').value;
+  const totalValue=parseFloat(document.getElementById('sTotalValue').value)||0;
+  const totalCost=parseFloat(document.getElementById('sTotalCost').value)||0;
+  const acc1Name=document.getElementById('sAcc1Name').value||'玉山活水庫';
+  const acc1Value=parseFloat(document.getElementById('sAcc1Value').value)||0;
+  const acc2Name=document.getElementById('sAcc2Name').value||'國泰銀彈庫';
+  const acc2Value=parseFloat(document.getElementById('sAcc2Value').value)||0;
+  const note=document.getElementById('sNote').value.trim();
+  if(!totalValue){alert('請填入總現值');return;}
+  snapshots.push({
+    id:Date.now(),date,totalValue,totalCost,
+    accounts:[{name:acc1Name,value:acc1Value},{name:acc2Name,value:acc2Value}],
+    note
+  });
+  saveSnapshots();
+  closeSnapshotModal();
+  renderSnapshots();
+}
+
+function deleteSnapshot(id){
+  if(!confirm('確認刪除此快照？'))return;
+  snapshots=snapshots.filter(s=>s.id!==id);
+  saveSnapshots();renderSnapshots();
+}
+
+function copySnapshot(id){
+  const s=snapshots.find(x=>x.id===id);
+  if(!s)return;
+  const pnl=s.totalValue-s.totalCost;
+  const pnlPct=s.totalCost>0?(pnl/s.totalCost*100).toFixed(2):0;
+  const sign=pnl>=0?'+':'';
+  let txt=`📅 ${s.date} 股票庫存現值\n`;
+  txt+=`─────────────────\n`;
+  txt+=`總現值　　${fmt(s.totalValue)}\n`;
+  txt+=`總成本　　${fmt(s.totalCost)}\n`;
+  txt+=`總損益　　${sign}${fmt(pnl)} (${sign}${pnlPct}%)\n`;
+  txt+=`─────────────────\n`;
+  s.accounts.forEach(a=>{txt+=`${a.name}　${fmt(a.value)}\n`;});
+  if(s.note){txt+=`─────────────────\n📌 ${s.note}\n`;}
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(()=>alert('✅ 已複製'));
+  } else {
+    const ta=document.createElement('textarea');ta.value=txt;
+    document.body.appendChild(ta);ta.select();
+    document.execCommand('copy');document.body.removeChild(ta);
+    alert('✅ 已複製');
+  }
+}
+
 // ── Run ───────────────────────────────────────────────────────
-init();
+async function initAll(){
+  await init();
+  await loadSnapshots();
+  renderSnapshots();
+}
+initAll();
 </script>
 </body>
 </html>
