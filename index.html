@@ -363,6 +363,10 @@ function getSpentInPeriod(){
   const ps=getPeriodStart();
   return personal.filter(e=>e.date>=ps&&!e.cash).reduce((s,e)=>s+e.amt,0);
 }
+function getJointSpentInPeriod(){
+  const ps=getPeriodStart();
+  return joint.filter(e=>e.date>=ps).reduce((s,e)=>s+e.amt,0);
+}
 
 function getAllMonths(){
   const s=new Set([...personal.map(e=>e.date.slice(0,7)),...joint.map(e=>e.date.slice(0,7))]);
@@ -599,7 +603,7 @@ function renderToday(){
   const todayPAmt=todayP.filter(e=>!e.cash).reduce((s,e)=>s+e.amt,0);
   const todayJAmt=todayJ.reduce((s,e)=>s+e.amt,0);
   const monthP=personal.filter(e=>e.date.startsWith(ym)&&!e.cash).reduce((s,e)=>s+e.amt,0);
-  const monthJ=joint.filter(e=>e.date.startsWith(ym)).reduce((s,e)=>s+e.amt,0);
+  const monthJ=getJointSpentInPeriod();
 
   // Settle quick view for current month
   const curSettle=joint.filter(e=>e.date.startsWith(ym));
@@ -634,13 +638,13 @@ function renderToday(){
   const statsHtml=`<div class="g3">
     <div class="stat-card"><div class="stat-label">今日個人</div><div class="stat-val" style="color:var(--p-color)">${fmt(todayPAmt)}</div></div>
     <div class="stat-card"><div class="stat-label">今日共同</div><div class="stat-val" style="color:var(--j-color)">${fmt(todayJAmt)}</div></div>
-    <div class="stat-card"><div class="stat-label">本月共同</div><div class="stat-val" style="color:var(--coffee)">${fmt(monthJ)}</div></div>
+    <div class="stat-card"><div class="stat-label">本期共同</div><div class="stat-val" style="color:var(--coffee)">${fmt(monthJ)}</div></div>
   </div>`;
 
   // Joint budget card
   const jBudgetHtml=`<div class="card" style="margin-bottom:10px">
     <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:6px">
-      <span style="color:var(--mid)">共同預算 ${monthName(ym)}（${fmt(JOINT_BUDGET)}）</span>
+      <span style="color:var(--mid)">共同預算（${fmt(JOINT_BUDGET)}）· 每月15號重置</span>
       <span style="font-weight:700;color:${jColor}">${jPct}%</span>
     </div>
     ${barHTML(jPct,jColor,8)}
