@@ -373,6 +373,29 @@ function getAllMonths(){
   return [...s].sort().reverse();
 }
 
+// ── Period helpers (any date → the 15th it belongs to) ─────────
+function getPeriodStartFor(dateStr){
+  const [y,m,day]=dateStr.split('-').map(Number);
+  if(day>=15)return `${y}-${String(m).padStart(2,'0')}-15`;
+  const d=new Date(y,m-2,1);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-15`;
+}
+function periodEnd(ps){
+  const [y,m]=ps.split('-').map(Number);
+  const d=new Date(y,m,14);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function periodLabel(ps){
+  const end=periodEnd(ps);
+  const[,sm,sd]=ps.split('-');
+  const[,em,ed]=end.split('-');
+  return `${parseInt(sm)}/${parseInt(sd)}–${parseInt(em)}/${parseInt(ed)}`;
+}
+function getAllPeriods(){
+  const s=new Set([...personal.map(e=>getPeriodStartFor(e.date)),...joint.map(e=>getPeriodStartFor(e.date))]);
+  return [...s].sort().reverse();
+}
+
 // ── Save/Load ─────────────────────────────────────────────────
 async function saveAll(){
   setBadge(true);
@@ -572,16 +595,16 @@ function submitAdd(){
   saveAll();renderAll();
 }
 
-// ── Monthly settle: group by month, show who paid ─────────────
-function getSettleByMonth(){
-  const months=getAllMonths();
-  return months.map(m=>{
-    const entries=joint.filter(e=>e.date.startsWith(m));
+// ── Period settle: group by 15號 cycle, show who paid ──────────
+function getSettleByPeriod(){
+  const periods=getAllPeriods();
+  return periods.map(ps=>{
+    const entries=joint.filter(e=>getPeriodStartFor(e.date)===ps);
     const sanAmt=entries.filter(e=>e.payer==='三墊').reduce((s,e)=>s+e.amt,0);
     const yeAmt=entries.filter(e=>e.payer==='葉墊').reduce((s,e)=>s+e.amt,0);
     const pubAmt=entries.filter(e=>e.payer==='公費').reduce((s,e)=>s+e.amt,0);
     const total=entries.reduce((s,e)=>s+e.amt,0);
-    return {m,entries,sanAmt,yeAmt,pubAmt,total};
+    return {ps,entries,sanAmt,yeAmt,pubAmt,total};
   }).filter(x=>x.entries.length>0);
 }
 
@@ -604,11 +627,13 @@ function renderToday(){
   const todayJAmt=todayJ.reduce((s,e)=>s+e.amt,0);
   const monthP=personal.filter(e=>e.date.startsWith(ym)&&!e.cash).reduce((s,e)=>s+e.amt,0);
   const monthJ=getJointSpentInPeriod();
+  const ps=getPeriodStart();
 
-  // Settle quick view for current month
-  const curSettle=joint.filter(e=>e.date.startsWith(ym));
+  // Settle quick view for current period（跟預算重置同一個15號週期）
+  const curSettle=joint.filter(e=>e.date>=ps);
   const curSan=curSettle.filter(e=>e.payer==='三墊').reduce((s,e)=>s+e.amt,0);
   const curYe=curSettle.filter(e=>e.payer==='葉墊').reduce((s,e)=>s+e.amt,0);
+  const jRem=Math.max(0,JOINT_BUDGET-monthJ);
   const jPct=Math.round(monthJ/JOINT_BUDGET*100);
   const jColor=monthJ>JOINT_BUDGET?'var(--danger)':'var(--gold)';
 
@@ -641,19 +666,22 @@ function renderToday(){
     <div class="stat-card"><div class="stat-label">本期共同</div><div class="stat-val" style="color:var(--coffee)">${fmt(monthJ)}</div></div>
   </div>`;
 
-  // Joint budget card
-  const jBudgetHtml=`<div class="card" style="margin-bottom:10px">
-    <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:6px">
-      <span style="color:var(--mid)">共同預算（${fmt(JOINT_BUDGET)}）· 每月15號重置</span>
-      <span style="font-weight:700;color:${jColor}">${jPct}%</span>
+  // Joint balance hero (shown instead of personal hero when on 共同 tab)
+  const jointHeroHtml=`<div class="card" style="border:2px solid ${jColor};margin-bottom:10px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+      <div>
+        <div style="font-size:10px;color:var(--mid);margin-bottom:2px">💰 共同可用餘額</div>
+        <div style="font-size:30px;font-weight:800;color:${jColor}">${fmt(jRem)}</div>
+        <div class="tip">已用 ${fmt(monthJ)} / ${fmt(JOINT_BUDGET)} · 每月15號重置</div>
+      </div>
+      <div style="font-size:22px;font-weight:800;color:${jColor}">${jPct}%</div>
     </div>
-    ${barHTML(jPct,jColor,8)}
-    <div class="tip" style="margin-top:6px">${monthJ>JOINT_BUDGET?`超出 ${fmt(monthJ-JOINT_BUDGET)}`:`剩餘 ${fmt(JOINT_BUDGET-monthJ)}`}</div>
+    ${barHTML(jPct,jColor,7)}
   </div>`;
 
-  // Settle mini for current month
+  // Settle mini for current period
   const settleMiniHtml=curSan>0||curYe>0?`<div class="card" style="margin-bottom:10px">
-    <div style="font-size:11px;font-weight:700;color:var(--mid);margin-bottom:8px">⚖️ ${monthName(ym)} 墊付待結</div>
+    <div style="font-size:11px;font-weight:700;color:var(--mid);margin-bottom:8px">⚖️ 本期墊付待結（${periodLabel(ps)}）</div>
     ${curSan>0?`<div class="settle-row"><span style="color:var(--mid)">三墊 待公費匯回</span><span style="font-weight:700;color:var(--p-color)">${fmt(curSan)}</span></div>`:''}
     ${curYe>0?`<div class="settle-row" style="border-bottom:none"><span style="color:var(--mid)">葉墊 待公費匯回</span><span style="font-weight:700;color:var(--j-color)">${fmt(curYe)}</span></div>`:''}
   </div>`:'';
@@ -673,15 +701,14 @@ function renderToday(){
   } else if(todayTab==='個人'){
     entriesHtml=todayP.length?[...todayP].sort((a,b)=>b.id-a.id).map(e=>entryHTML(e,'p',true)).join(''):emptyHTML('今日個人尚無記錄');
   } else {
-    const jMonthAll=joint.filter(e=>e.date.startsWith(ym)).sort((a,b)=>b.date.localeCompare(a.date));
+    const jPeriodAll=joint.filter(e=>e.date>=ps).sort((a,b)=>b.date.localeCompare(a.date));
     entriesHtml=`${todayJ.length?[...todayJ].sort((a,b)=>b.id-a.id).map(e=>entryHTML(e,'j',true)).join(''):emptyHTML('今日共同尚無記錄')}
-    <div style="font-size:11px;font-weight:600;color:var(--mid);margin:12px 0 6px">${monthName(ym)} 所有共同記錄</div>
-    ${jMonthAll.map(e=>entryHTML(e,'j',true)).join('')||emptyHTML('本月共同尚無記錄')}`;
+    <div style="font-size:11px;font-weight:600;color:var(--mid);margin:12px 0 6px">本期共同記錄（${periodLabel(ps)}）</div>
+    ${jPeriodAll.map(e=>entryHTML(e,'j',true)).join('')||emptyHTML('本期共同尚無其他記錄')}`;
   }
 
-  el.innerHTML=subHtml+(todayTab==='共同'?jBudgetHtml+settleMiniHtml:budgetHtml+statsHtml)+(todayTab!=='共同'?statsHtml+jBudgetHtml+settleMiniHtml:'')+addBarHtml+legendHtml+entriesHtml;
-  // clean up duplicate stats
-  el.innerHTML=subHtml+budgetHtml+statsHtml+(todayTab==='共同'?jBudgetHtml+settleMiniHtml:'')+addBarHtml+legendHtml+entriesHtml;
+  const heroHtml=todayTab==='共同'?jointHeroHtml:budgetHtml;
+  el.innerHTML=subHtml+heroHtml+statsHtml+(todayTab==='共同'?settleMiniHtml:'')+addBarHtml+legendHtml+entriesHtml;
 }
 
 function setTodayTab(t){todayTab=t;renderToday();}
@@ -693,7 +720,7 @@ function renderLedger(){
   const ym=ymNow();
   const monthP=personal.filter(e=>e.date.startsWith(ym)&&!e.cash).reduce((s,e)=>s+e.amt,0);
   const monthJ=joint.filter(e=>e.date.startsWith(ym)).reduce((s,e)=>s+e.amt,0);
-  const settleData=getSettleByMonth();
+  const settleData=getSettleByPeriod();
 
   const tabs=['流水','圖表','墊付'];
   const subHtml=`<div class="subtabs">${tabs.map(t=>`<button class="subtab${ledgerTab===t?' active':''}" onclick="setLedgerTab('${t}')">${t}</button>`).join('')}</div>`;
@@ -797,19 +824,20 @@ function renderLedger(){
     </div>`;
   });
 
-  // 墊付: 按月份顯示，三墊/葉墊清單，不計算誰匯誰
+  // 墊付: 按15號週期顯示，三墊/葉墊清單，不計算誰匯誰
   let settleHtml='';
   if(settleData.length===0){settleHtml=emptyHTML('尚無墊付記錄');}
   else{
-    settleData.forEach(({m,entries,sanAmt,yeAmt,pubAmt,total})=>{
-      const isCur=m===ym;
-      const mid2='settle'+m.replace('-','');
+    const curPs=getPeriodStart();
+    settleData.forEach(({ps,entries,sanAmt,yeAmt,pubAmt,total})=>{
+      const isCur=ps===curPs;
+      const mid2='settle'+ps.replace(/-/g,'');
       const sanItems=entries.filter(e=>e.payer==='三墊');
       const yeItems=entries.filter(e=>e.payer==='葉墊');
       settleHtml+=`<div class="month-section">
         <div class="month-header" onclick="toggleMonth('${mid2}')">
           <div>
-            <div class="month-title">${monthName(m)} 墊付${isCur?' (本月)':''}</div>
+            <div class="month-title">${periodLabel(ps)} 墊付${isCur?' (本期)':''}</div>
             <div class="month-summary" style="display:flex;gap:10px">
               ${sanAmt>0?`<span style="color:var(--p-color)">三墊 ${fmt(sanAmt)}</span>`:''}
               ${yeAmt>0?`<span style="color:var(--j-color)">葉墊 ${fmt(yeAmt)}</span>`:''}
@@ -1066,8 +1094,8 @@ function renderBudget(){
         <div style="font-weight:700;color:var(--text);margin:8px 0 4px">每月15號</div>
         <div>· 個人預算重置 NT$8,000</div>
         <div>· 各自轉入 NT$10,000 公費</div>
-        <div style="font-weight:700;color:var(--text);margin:8px 0 4px">每月底</div>
         <div>· 帳務 → 墊付 → 公費各別匯回三/葉</div>
+        <div style="font-weight:700;color:var(--text);margin:8px 0 4px">每月底</div>
         <div>· 帳務 → 流水 → 產出月報表存底</div>
       </div>
     </div>`;
